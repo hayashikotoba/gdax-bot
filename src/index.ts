@@ -7,11 +7,11 @@ import ACCOUNTS from './accounts';
 const authenticatedClient = new GDAX.AuthenticatedClient(
     apiKey, secret, passPhrase, 'https://api.gdax.com');
 
-// const callback = (error, response, data) => {
-//     if (error)
-//         return console.dir(error);
-//     return console.dir(data);
-// };
+const callback = (error, response, data) => {
+    if (error)
+        return console.dir(error);
+    return console.dir(data);
+};
 // authenticatedClient.getAccount(ACCOUNTS.ETH, callback);
 
 const ETH_USD = 'ETH-USD';
