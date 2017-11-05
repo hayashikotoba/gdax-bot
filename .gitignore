@@ -1,1 +1,4 @@
 node_modules
+credentials.js
+accounts.js
+npm-debug.log
