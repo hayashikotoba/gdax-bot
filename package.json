@@ -10,5 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "gdax": "^0.4.2"
+  },
+  "devDependencies": {
+    "typescript": "^2.6.1"
   }
 }

@@ -1,7 +1,8 @@
-const GDAX = require('gdax');
+/// <reference path="node.d.ts"/>
+import * as GDAX from 'gdax';
 
-const {passPhrase, apiKey, secret} = require('./credentials.js');
-const ACCOUNTS = require('./accounts.js');
+import {passPhrase, apiKey, secret} from './credentials';
+import ACCOUNTS from './accounts';
 
 const authenticatedClient = new GDAX.AuthenticatedClient(
     apiKey, secret, passPhrase, 'https://api.gdax.com');
@@ -16,7 +17,7 @@ const authenticatedClient = new GDAX.AuthenticatedClient(
 const ETH_USD = 'ETH-USD';
 
 const websocket = new GDAX.WebsocketClient([ETH_USD]);
-websocket.on('message', data => {
+websocket.on('message', (data: any) => {
   // Get filled orders.
   if (!(data.type === 'done' && data.reason === 'filled')) {
     return;
