@@ -16,6 +16,6 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "node build"
+    "start": "npm run build && node build"
   }
 }
