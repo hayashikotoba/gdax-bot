@@ -1,6 +1,7 @@
 import * as CliTable from '../node_modules/cli-table/lib/index.js'
 import * as colors from '../node_modules/colors/lib/index.js';
 import * as OrderbookSync from '../node_modules/gdax/lib/orderbook_sync.js';
+import * as fp from 'lodash/fp';
 
 export type CurrencyPair = 'ETH-USD';
 
@@ -22,39 +23,29 @@ class Orderbook {
   }
 
   private groupQuotesByPrice(quotes) {
-    return quotes
-      .slice(0, this.level2Cutoff)
-      .map(ask => {
+    const pipe = fp.pipe(
+      fp.take(this.level2Cutoff),
+      fp.map(ask => {
         const clone = JSON.parse(JSON.stringify(ask));
         clone.price = Number(ask.price).toFixed(PRICE_PRECISION);
         return clone;
-      })
-      .reduce((groups, x) => {
+      }),
+      fp.reduce((groups, x) => {
         const {price} = x;
         groups[price] = groups[price] || []; // Generate entry if D.N.E.
         groups[price].push(x); // Mutate entry rather than immutable commit with .concat for performance.
         return groups;
-      },{});
+      }, {})
+    );
+    return pipe(quotes);
   }
 
   private reduceGroups(groups) {
-    const reducedGroups = [];
-    Object.keys(groups).forEach(key => {
-      const group = groups[key];
-      // Sum up total order size at given price
-      reducedGroups.push({
-        price: key,
-        size: group.map(({size}) => Number(size)).reduce((total, size) => total + Number(size), 0)
-      });
-    });
-    return reducedGroups;
+    const reducer = fp.mapValues(group => group.map(({size}) => Number(size)).reduce((total, size) => total + Number(size), 0));
+    return reducer(groups);
   }
 
-  private trimRows(rows, bookDepth) {
-    return rows.slice(0, bookDepth).map(({price, size}) => [price, size]);
-  }
-
-  private getSupplyDemandRows() {
+  private getSupplyDemandGroups() {
     const currencyPair: CurrencyPair = this.currencies[0];
     const {asks, bids} = this.orderBook.books[currencyPair].state();
     return {
@@ -63,14 +54,21 @@ class Orderbook {
     };
   }
 
+  // Map row object to CLI table row.
+  public static readonly pluckForTable = (({price, size}) => [price, size]);
+
   render(currency: CurrencyPair, bookDepth: number = null) {
     if(this.currencies.indexOf(currency) < 0) {
       throw `Currency ${currency} not in Orderbook`;
     }
 
-    const {supply, demand} = this.getSupplyDemandRows();
-    const headSupply = this.trimRows(supply, bookDepth || this.bookDepth);
-    const headDemand = this.trimRows(demand, bookDepth || this.bookDepth);
+    const {supply, demand} = this.getSupplyDemandGroups();
+    const toTableRow = fp.pipe(
+      fp.toPairs,
+      fp.take(bookDepth || this.bookDepth),
+    );
+    const headSupply = toTableRow(supply);
+    const headDemand = toTableRow(demand);
 
     const supplyTable = new CliTable({
       head: ['Price', 'Market Size'],
@@ -91,4 +89,3 @@ class Orderbook {
 
 
 export const orderBook = new Orderbook(['ETH-USD']);
-
