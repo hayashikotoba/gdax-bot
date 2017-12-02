@@ -4,3 +4,4 @@ accounts.ts
 npm-debug.log
 *.js
 *.js.map
+package-lock.json
