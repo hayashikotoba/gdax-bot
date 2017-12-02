@@ -25,17 +25,13 @@ class Orderbook {
   private groupQuotesByPrice(quotes) {
     const pipe = fp.pipe(
       fp.take(this.level2Cutoff),
-      fp.map(ask => {
-        const clone = JSON.parse(JSON.stringify(ask));
-        clone.price = Number(ask.price).toFixed(PRICE_PRECISION);
-        return clone;
+      fp.cloneDeep,
+      // Normalize price groups.
+      fp.map(quote => {
+        quote.price = Number(quote.price).toFixed(PRICE_PRECISION);
+        return quote;
       }),
-      fp.reduce((groups, x) => {
-        const {price} = x;
-        groups[price] = groups[price] || []; // Generate entry if D.N.E.
-        groups[price].push(x); // Mutate entry rather than immutable commit with .concat for performance.
-        return groups;
-      }, {})
+      fp.groupBy('price'),
     );
     return pipe(quotes);
   }
