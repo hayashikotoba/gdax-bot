@@ -74,5 +74,5 @@ websocket.on('message', (data: any) => {
 // }
 
 setInterval(() => {
-  orderBook.render();
+  orderBook.render('ETH-USD', 5);
 }, 1*1000);

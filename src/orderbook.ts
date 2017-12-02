@@ -2,7 +2,7 @@ import * as CliTable from '../node_modules/cli-table/lib/index.js'
 import * as colors from '../node_modules/colors/lib/index.js';
 import * as OrderbookSync from '../node_modules/gdax/lib/orderbook_sync.js';
 
-type CurrencyPair = 'ETH-USD';
+export type CurrencyPair = 'ETH-USD';
 
 class Orderbook {
   private readonly orderBook: OrderbookSync;
@@ -14,76 +14,67 @@ class Orderbook {
     this.orderBook = new OrderbookSync(currencies);
   }
 
-  private getSupplyDemandTable() {
-    const currencyPair: CurrencyPair = this.currencies[0];
-    const {asks, bids} = this.orderBook.books[currencyPair].state();
+  private groupQuotesByPrice(quotes) {
+    return quotes
+      .slice(0, 1000)
+      .map(ask => {
+        const clone = JSON.parse(JSON.stringify(ask));
+        clone.price = Number(ask.price).toFixed(2); // Normalize feed data.
+        return clone;
+      })
+      .reduce((groups, x) => {
+        const {price} = x;
+        groups[price] = groups[price] || []; // Generate entry if D.N.E.
+        groups[price].push(x); // Mutate entry rather than immutable commit with .concat for performance.
+        return groups;
+      },{});
+  }
 
-    // group by ask price.
-    const askGroups = asks.slice(0, 1000).map(ask => {
-      const clone = JSON.parse(JSON.stringify(ask));
-      clone.price = Number(ask.price).toFixed(2); // Normalize feed data.
-      return clone;
-    })
-    .reduce((groups, x) => {
-      const {price} = x;
-      groups[price] = groups[price] || []; // Generate entry if D.N.E.
-      groups[price].push(x); // Mutate entry rather than immutable commit with .concat for performance.
-      return groups;
-    },{});
-    const supplyRows = [];
-    Object.keys(askGroups).forEach(key => {
-      const group = askGroups[key];
+  private reduceGroups(groups) {
+    const reducedGroups = [];
+    Object.keys(groups).forEach(key => {
+      const group = groups[key];
       // Sum up total order size at given price
-      supplyRows.push({
+      reducedGroups.push({
         price: key,
         size: group.map(({size}) => Number(size)).reduce((total, size) => total + Number(size), 0)
       });
-    })
-    // Trim to unique price depth.
-    const headSupplyRows = supplyRows.slice(0, this.bookDepth).map(({price, size}) => [price, size]);
-
-    const bidGroups = bids.slice(0, 1000).map(bid => {
-      const clone = JSON.parse(JSON.stringify(bid));
-      clone.price = Number(bid.price).toFixed(2); // Normalize feed data.
-      return clone;
-    })
-    .reduce((groups, x) => {
-      const {price} = x;
-      groups[price] = groups[price] || []; // Generate entry if D.N.E.
-      groups[price].push(x); // Mutate entry rather than immutable commit with .concat for performance.
-      return groups;
-    },{});
-    const demandRows = [];
-    Object.keys(bidGroups).forEach(key => {
-      const group = bidGroups[key];
-      // Sum up total order size at given price
-      demandRows.push({
-        price: key,
-        size: group.map(({size}) => Number(size)).reduce(
-          (total, size) => total + Number(size), 0)
-      });
-    })
-    const headDemandRows = demandRows.slice(0, this.bookDepth).map(
-      ({price, size}) => [price, size]);
-
-    return {
-      headSupplyRows,
-      headDemandRows
-    }
+    });
+    return reducedGroups;
   }
 
-  render() {
-    const {headSupplyRows, headDemandRows} = this.getSupplyDemandTable();
+  private trimRows(rows, bookDepth) {
+    return rows.slice(0, bookDepth).map(({price, size}) => [price, size]);
+  }
+
+  private getSupplyDemandRows() {
+    const currencyPair: CurrencyPair = this.currencies[0];
+    const {asks, bids} = this.orderBook.books[currencyPair].state();
+    return {
+      supply: this.reduceGroups(this.groupQuotesByPrice(asks)),
+      demand: this.reduceGroups(this.groupQuotesByPrice(bids)),
+    };
+  }
+
+  render(currency: CurrencyPair, bookDepth: number = null) {
+    if(this.currencies.indexOf(currency) < 0) {
+      throw `Currency ${currency} not in Orderbook`;
+    }
+
+    const {supply, demand} = this.getSupplyDemandRows();
+    const headSupply = this.trimRows(supply, bookDepth || this.bookDepth);
+    const headDemand = this.trimRows(demand, bookDepth || this.bookDepth);
+
     const supplyTable = new CliTable({
       head: ['Price', 'Market Size'],
       style: { 'padding-left': 0, 'padding-right': 0 }
     });
-    supplyTable.push(...headSupplyRows);
+    supplyTable.push(...headSupply);
     const demandTable = new CliTable({
       head: ['Price', 'Size'],
       style: { 'padding-left': 0, 'padding-right': 0 }
     });
-   demandTable.push(...headDemandRows);
+   demandTable.push(...headDemand);
     console.log(colors.red('supply'));
     console.log(supplyTable.toString());
     console.log(colors.green('demand'));
