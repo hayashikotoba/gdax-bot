@@ -23,7 +23,7 @@ class Orderbook {
   }
 
   private groupQuotesByPrice(quotes) {
-    const pipe = fp.pipe(
+    return fp.pipe(
       fp.take(this.level2Cutoff),
       fp.cloneDeep,
       // Normalize price groups.
@@ -32,13 +32,15 @@ class Orderbook {
         return quote;
       }),
       fp.groupBy('price'),
-    );
-    return pipe(quotes);
+    )(quotes);
   }
 
   private reduceGroups(groups) {
-    const reducer = fp.mapValues(group => group.map(({size}) => Number(size)).reduce((total, size) => total + Number(size), 0));
-    return reducer(groups);
+    return fp.mapValues(fp.pipe(
+      fp.map('size'),
+      fp.map(fp.toNumber),
+      fp.sum,
+    ))(groups);
   }
 
   private getSupplyDemandGroups() {
