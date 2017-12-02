@@ -1,5 +1,5 @@
 import {AuthenticatedClient, WebsocketClient} from 'gdax';
-
+import {orderBook} from './orderbook';
 import {passPhrase, apiKey, secret} from './credentials';
 import ACCOUNTS from './accounts';
 
@@ -37,7 +37,7 @@ const websocketConfig = {
 const websocket = new WebsocketClient(['BTC-USD']);
 
 websocket.on('message', (data: any) => {
-  console.log(data);
+//   console.log(data);
   // if(data.type == 'ticker') {
   //   return console.dir(data);
   // }
@@ -73,4 +73,6 @@ websocket.on('message', (data: any) => {
 //   }
 // }
 
-
+setInterval(() => {
+  orderBook.render();
+}, 1*1000);
