@@ -4,18 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "start": "npm run build && node build"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "gdax": "^0.4.2"
+    "@types/node": "^7.0.5",
+    "gdax": "github:coinbase/gdax-node"
   },
   "devDependencies": {
     "typescript": "^2.6.1"
-  },
-  "scripts": {
-    "build": "tsc",
-    "start": "npm run build && node build"
   }
 }
