@@ -4,6 +4,9 @@ import * as OrderbookSync from '../node_modules/gdax/lib/orderbook_sync.js';
 
 export type CurrencyPair = 'ETH-USD';
 
+// Number of decimals L2 data has.
+const PRICE_PRECISION = 2;
+
 class Orderbook {
   private readonly orderBook: OrderbookSync;
 
@@ -23,7 +26,7 @@ class Orderbook {
       .slice(0, this.level2Cutoff)
       .map(ask => {
         const clone = JSON.parse(JSON.stringify(ask));
-        clone.price = Number(ask.price).toFixed(2); // Normalize feed data.
+        clone.price = Number(ask.price).toFixed(PRICE_PRECISION);
         return clone;
       })
       .reduce((groups, x) => {
