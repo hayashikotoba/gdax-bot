@@ -10,13 +10,17 @@ class Orderbook {
   constructor(
       private readonly currencies: CurrencyPair[],
       private readonly bookDepth: number = 20,
+      // Amount of LevelII data to look at. 
+      // TODO: There should be indication of number n in the tail of aggregated data
+      // that is inaccurate because of cutoff.
+      private readonly level2Cutoff: number = 1000,
     ) {
     this.orderBook = new OrderbookSync(currencies);
   }
 
   private groupQuotesByPrice(quotes) {
     return quotes
-      .slice(0, 1000)
+      .slice(0, this.level2Cutoff)
       .map(ask => {
         const clone = JSON.parse(JSON.stringify(ask));
         clone.price = Number(ask.price).toFixed(2); // Normalize feed data.
